@@ -1,0 +1,7 @@
+beautifulsoup4==4.14.3
+lxml==6.0.2
+requests==2.32.5
+cbor==1.0.0
+readerwriterlock==1.0.9
+nltk==3.9.3
+./vendor/spacetime-2.1.1-py3-none-any.whl

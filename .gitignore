@@ -1,0 +1,68 @@
+# -----------------------------
+# Python cache / compiled files
+# -----------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# -----------------------------
+# Virtual environments
+# -----------------------------
+venv/
+.venv/
+env/
+ENV/
+
+# -----------------------------
+# OS / Editor junk
+# -----------------------------
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# -----------------------------
+# Logs
+# -----------------------------
+*.log
+
+# -----------------------------
+# Build / distribution
+# -----------------------------
+build/
+dist/
+*.egg-info/
+
+# -----------------------------
+# Data (DO NOT COMMIT CRAWLED DATA)
+# -----------------------------
+data/
+
+# If you ever store raw pages elsewhere
+*.json
+
+# -----------------------------
+# Index output (generated)
+# -----------------------------
+src/output/
+data/index/
+data/raw/
+data/crawl_state/
+data/analytics/
+
+# -----------------------------
+# Temporary / debug files
+# -----------------------------
+*.tmp
+*.bak
+
+# -----------------------------
+# Python packaging
+# -----------------------------
+pip-wheel-metadata/
+
+# -----------------------------
+# Jupyter (if you ever use it)
+# -----------------------------
+.ipynb_checkpoints/
