@@ -456,8 +456,8 @@
 
       <div class="input-row">
         <input id="url-input" class="text-input" type="text"
-               placeholder="https://quotes.toscrape.com"
-               value="https://quotes.toscrape.com" />
+               placeholder="https://example.com"
+               value="" />
         <button id="crawl-btn" class="btn btn-primary" onclick="startCrawl()">Crawl</button>
         <button id="stop-btn" class="btn btn-stop" onclick="stopCrawl()" style="display:none">■ Stop</button>
       </div>
@@ -493,7 +493,7 @@
 
       <div class="input-row">
         <input id="search-input" class="text-input" type="text"
-               placeholder="e.g. love, life, truth..."
+               placeholder="type anything..."
                onkeydown="if(event.key==='Enter') doSearch()" />
         <button class="btn btn-primary" onclick="doSearch()">Search</button>
       </div>
