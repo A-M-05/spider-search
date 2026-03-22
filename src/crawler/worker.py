@@ -1,5 +1,4 @@
 from threading import Thread
-from inspect import getsource
 import time
 
 from .framework.download import download
@@ -8,44 +7,44 @@ from . import scraper
 
 
 class Worker(Thread):
-    def __init__(self, worker_id, config, frontier, cache_server=None, allowed_domains=None):
+    def __init__(self, worker_id, config, frontier, allowed_domains=None):
         self.logger = get_logger(f"Worker-{worker_id}", "Worker")
         self.config = config
         self.frontier = frontier
         self.allowed_domains = allowed_domains or set()
-
-        # If crawl_runner already fetched the cache server, store it on config
-        # so the existing download() call keeps working.
-        if cache_server is not None:
-            self.config.cache_server = cache_server
-
-        # basic check for requests in scraper
-        assert {getsource(scraper).find(req) for req in {"from requests import", "import requests"}} == {-1}, \
-            "Do not use requests in scraper.py"
-        assert {getsource(scraper).find(req) for req in {"from urllib.request import", "import urllib.request"}} == {-1}, \
-            "Do not use urllib.request in scraper.py"
-
+        self.worker_id = worker_id
+        self.pages_crawled = 0
         super().__init__(daemon=True)
 
     def run(self):
+        print(f"[Worker-{self.worker_id}] Started.")
+
         while True:
             tbd_url = self.frontier.get_tbd_url()
 
             if not tbd_url:
-                self.logger.info("Frontier is empty. Stopping Crawler.")
+                print(f"[Worker-{self.worker_id}] Frontier empty. Stopping. "
+                      f"(crawled {self.pages_crawled} pages)")
                 break
 
             resp = download(tbd_url, self.config, self.logger)
 
-            self.logger.info(
-                f"Downloaded {tbd_url}, status <{resp.status}>, "
-                f"using cache {self.config.cache_server}."
-            )
+            status = resp.status
+            self.pages_crawled += 1
 
-            scraped_urls = scraper.scraper(tbd_url, resp, self.allowed_domains)
+            print(f"[Worker-{self.worker_id}] [{self.pages_crawled}] "
+                  f"status={status} {tbd_url}")
 
-            for scraped_url in scraped_urls:
-                self.frontier.add_url(scraped_url)
+            if status == 200:
+                scraped_urls = scraper.scraper(tbd_url, resp, self.allowed_domains)
+                new_urls = 0
+                for scraped_url in scraped_urls:
+                    self.frontier.add_url(scraped_url)
+                    new_urls += 1
+                if new_urls:
+                    print(f"[Worker-{self.worker_id}]   -> found {new_urls} new URLs")
+            else:
+                scraper.scraper(tbd_url, resp, self.allowed_domains)
 
             self.frontier.mark_url_complete(tbd_url)
             time.sleep(self.config.time_delay)

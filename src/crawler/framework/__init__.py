@@ -16,7 +16,6 @@ def get_logger(name, filename=None):
        "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
-    # add the handlers to the logger
     logger.addHandler(fh)
     logger.addHandler(ch)
     return logger
@@ -24,12 +23,13 @@ def get_logger(name, filename=None):
 
 def get_urlhash(url):
     parsed = urlparse(url)
-    # everything other than scheme.
     return sha256(
         f"{parsed.netloc}/{parsed.path}/{parsed.params}/"
         f"{parsed.query}/{parsed.fragment}".encode("utf-8")).hexdigest()
 
-def normalize(url):
+
+def normalize_url(url):
+    """Strip trailing slash for consistent URL storage in the frontier."""
     if url.endswith("/"):
         return url.rstrip("/")
     return url

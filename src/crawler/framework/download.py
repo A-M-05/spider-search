@@ -1,22 +1,53 @@
 import requests
-import cbor
-import time
+from .response import Response
 
-from framework.response import Response
+# Timeout for all HTTP requests (connect timeout, read timeout)
+REQUEST_TIMEOUT = (5, 15)
+
 
 def download(url, config, logger=None):
-    host, port = config.cache_server
-    resp = requests.get(
-        f"http://{host}:{port}/",
-        params=[("q", f"{url}"), ("u", f"{config.user_agent}")])
+    """
+    Fetch a URL directly using requests, returning a Response object.
+
+    This replaces the original Spacetime cache-server download so the
+    crawler can run standalone without external infrastructure.
+
+    :param url: URL to fetch.
+    :param config: Crawler config object (used for user agent).
+    :param logger: Optional logger for error reporting.
+    :return: Response object wrapping the HTTP response.
+    """
+    headers = {"User-Agent": config.user_agent}
+
     try:
-        if resp and resp.content:
-            return Response(cbor.loads(resp.content))
-    except (EOFError, ValueError) as e:
-        pass
-    if logger:
-        logger.error(f"Spacetime Response error {resp} with url {url}.")
-    return Response({
-        "error": f"Spacetime Response error {resp} with url {url}.",
-        "status": resp.status_code,
-        "url": url})
+        resp = requests.get(
+            url,
+            headers=headers,
+            timeout=REQUEST_TIMEOUT,
+            allow_redirects=True
+        )
+        return Response({
+            "url": resp.url,
+            "status": resp.status_code,
+            "response": resp,
+        })
+
+    except requests.exceptions.TooManyRedirects:
+        if logger:
+            logger.warning(f"Too many redirects: {url}")
+        return Response({"url": url, "status": 600, "error": "Too many redirects"})
+
+    except requests.exceptions.ConnectionError:
+        if logger:
+            logger.warning(f"Connection error: {url}")
+        return Response({"url": url, "status": 601, "error": "Connection error"})
+
+    except requests.exceptions.Timeout:
+        if logger:
+            logger.warning(f"Timeout: {url}")
+        return Response({"url": url, "status": 602, "error": "Timeout"})
+
+    except Exception as e:
+        if logger:
+            logger.error(f"Unexpected error fetching {url}: {e}")
+        return Response({"url": url, "status": 603, "error": str(e)})

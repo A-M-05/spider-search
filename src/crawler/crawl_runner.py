@@ -2,7 +2,6 @@ import configparser
 from pathlib import Path
 
 from .framework.config import Config
-from .framework.server_registration import get_cache_server
 from .frontier import Frontier
 from .worker import Worker
 from .domain_config import get_allowed_domains, is_valid_seed_url
@@ -11,7 +10,15 @@ from ..common.paths import CRAWL_STATE_DIR
 CONFIG_PATH = Path("config/crawler.ini")
 
 
-def run_crawler(seed_url=None):
+def run_crawler(seed_url=None, restart=True):
+    """
+    Run the web crawler.
+
+    :param seed_url: Override seed URL from config (optional).
+    :param restart: If True, clears existing crawl state and starts fresh.
+                    Defaults to True so repeated runs don't get stuck on
+                    an already-completed frontier.
+    """
     print("=== STARTING CRAWLER ===")
 
     parser = configparser.ConfigParser()
@@ -25,17 +32,26 @@ def run_crawler(seed_url=None):
         config.seed_urls = [seed_url]
 
     if not config.seed_urls:
-        raise ValueError("No seed URL provided.")
+        raise ValueError(
+            "No seed URL provided. Pass a URL as an argument:\n"
+            "  python -m src.main crawl https://example.com\n"
+            "Or set SEEDURL in config/crawler.ini"
+        )
 
     allowed_domains = get_allowed_domains(config.seed_urls)
-    print(f"Seed URLs: {config.seed_urls}")
+    print(f"Seed URLs:       {config.seed_urls}")
     print(f"Allowed domains: {allowed_domains}")
+    print(f"Threads:         {config.threads_count}")
+    print(f"Politeness:      {config.time_delay}s delay between requests")
+    print(f"Restart:         {restart}")
+    print()
 
     CRAWL_STATE_DIR.mkdir(parents=True, exist_ok=True)
 
-    cache_server = get_cache_server(config, restart=False)
-
-    frontier = Frontier(config=config, restart=False)
+    # restart=True clears the old frontier so we always start fresh.
+    # This prevents the crawler from silently doing nothing because the
+    # previous frontier save file already marked everything as complete.
+    frontier = Frontier(config=config, restart=restart, allowed_domains=allowed_domains)
 
     workers = []
     for i in range(config.threads_count):
@@ -43,7 +59,6 @@ def run_crawler(seed_url=None):
             worker_id=i,
             config=config,
             frontier=frontier,
-            cache_server=cache_server,
             allowed_domains=allowed_domains,
         )
         workers.append(worker)
@@ -54,4 +69,6 @@ def run_crawler(seed_url=None):
     for w in workers:
         w.join()
 
-    print("=== CRAWL COMPLETE ===")
+    total = sum(w.pages_crawled for w in workers)
+    print()
+    print(f"=== CRAWL COMPLETE — {total} pages fetched ===")
