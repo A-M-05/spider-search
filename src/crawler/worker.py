@@ -3,6 +3,8 @@ import time
 
 from .framework.download import download
 from .framework import get_logger
+from .text_utils import to_text
+from ..io.dataset_writer import write_document
 from . import scraper
 
 
@@ -28,22 +30,28 @@ class Worker(Thread):
                 break
 
             resp = download(tbd_url, self.config, self.logger)
-
             status = resp.status
             self.pages_crawled += 1
 
             print(f"[Worker-{self.worker_id}] [{self.pages_crawled}] "
                   f"status={status} {tbd_url}")
 
-            if status == 200:
+            if status == 200 and resp.raw_response is not None:
+                # Save the raw HTML to disk so the indexer can find it later
+                html = to_text(resp.raw_response.content)
+                write_document(tbd_url, html)
+
+                # Extract outgoing links and add them to the frontier
                 scraped_urls = scraper.scraper(tbd_url, resp, self.allowed_domains)
                 new_urls = 0
                 for scraped_url in scraped_urls:
                     self.frontier.add_url(scraped_url)
                     new_urls += 1
+
                 if new_urls:
                     print(f"[Worker-{self.worker_id}]   -> found {new_urls} new URLs")
             else:
+                # Still run scraper for bad-URL recording side effects
                 scraper.scraper(tbd_url, resp, self.allowed_domains)
 
             self.frontier.mark_url_complete(tbd_url)
