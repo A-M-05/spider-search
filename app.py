@@ -120,6 +120,23 @@ def search():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+@app.route("/status")
+def status():
+    from src.common.paths import INDEX_DIR
+    ready = (INDEX_DIR / "postings.bin").exists()
+    return jsonify({"ready": ready})
+
+@app.route("/load-searcher", methods=["POST"])
+def load_searcher():
+    global _searcher
+    try:
+        from src.search.searcher import Searcher
+        with _searcher_lock:
+            if _searcher is None:
+                _searcher = Searcher()
+        return jsonify({"status": "loaded"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ---------------------------------------------------------------------------
 # Pipeline runner (runs in background thread)
@@ -241,4 +258,6 @@ def _run_pipeline(seed_url: str):
         _push(f"ERROR:{traceback.format_exc()}")
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=8080, debug=True)
+    import os
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)

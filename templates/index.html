@@ -678,6 +678,21 @@
       '<div class="empty-state">// enter a query to see results</div>';
     document.getElementById("results-meta").textContent = "";
   }
+  // On page load, check if index is already built
+    window.addEventListener("load", () => {
+        fetch("/status")
+            .then(r => r.json())
+            .then(data => {
+                if (data.ready) {
+                    document.getElementById("stage-crawl").classList.remove("active");
+                    document.getElementById("stage-search").classList.add("active");
+                    document.getElementById("search-sub").textContent =
+                        "// index ready — enter a query below";
+                    // Pre-load the searcher
+                    fetch("/load-searcher", { method: "POST" });
+                }
+            });
+    });
 </script>
 </body>
 </html>
