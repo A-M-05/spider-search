@@ -2,7 +2,7 @@
 
 A full-stack web crawler and search engine. Enter any URL, SpiderSearch crawls the domain, builds an inverted index, computes PageRank, and lets you search the results — all from a clean web interface.
 
-**Live demo:** [spider-search.net](https://spider-search.net)
+**Live demo:** [spider-search](https://spider-search-3iuz.onrender.com)
 
 ---
 
